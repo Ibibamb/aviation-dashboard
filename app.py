@@ -12,8 +12,7 @@ st.set_page_config(page_title="UK Aviation Recovery", layout="wide", initial_sid
 # This hides standard Streamlit borders and makes the KPI cards look like your design
 st.markdown("""
     <style>
-    div[data-testid="metric-container"] {
-        background-color: #FFFFFF;
+    div[data-testid="stMetric"] {
         border: 1px solid #E6E9EF;
         padding: 5% 5% 5% 10%;
         border-radius: 8px;
@@ -50,7 +49,7 @@ df = load_data()
 
 # 3. The Control Center (Sidebar)
 st.sidebar.title("UK Aviation Recovery")
-st.sidebar.markdown("*(DSR Evaluation Dashboard)*")
+st.sidebar.markdown("*(Analytics Dashboard)*")
 st.sidebar.markdown("---")
 
 # Year Filter
@@ -63,6 +62,11 @@ selected_years = st.sidebar.multiselect(
 
 # Airport Filter (Enforcing the Project Constraint!)
 available_airports = sorted(df['Airport'].unique())
+
+# Define a consistent corporate color palette for all airports across charts
+# 5 airports in DB → 5 distinct, high-contrast colors
+THEME_COLORS = ['#1A4F8A', '#00A896', '#82A6CB', '#E8724A', '#6C5CE7']  # Navy, Teal, Sky, Coral, Violet
+airport_colors = {airport: THEME_COLORS[i % len(THEME_COLORS)] for i, airport in enumerate(available_airports)}
 selected_airports = st.sidebar.multiselect(
     "Compare Airports (Max 3)",
     options=available_airports,
@@ -74,7 +78,7 @@ selected_airports = st.sidebar.multiselect(
 filtered_df = df[(df['Year'].isin(selected_years)) & (df['Airport'].isin(selected_airports))]
 
 # 5. The KPI Ribbon (Top Row)
-st.markdown("### System Overview")
+st.markdown("### Overview")
 
 if not filtered_df.empty:
     kpi1, kpi2, kpi3 = st.columns(3)
@@ -131,6 +135,7 @@ if not filtered_df.empty:
         x='Date', 
         y='Total Passengers', 
         color='Airport',
+        color_discrete_map=airport_colors, # Unify palette mapping
         markers=True,
         title="Post-Pandemic Recovery Arc"
     )
@@ -156,7 +161,7 @@ if not filtered_df.empty:
         # CHART 2: Market Structure — Horizontal 100% Stacked Bar
         # Using go.Figure with explicit traces: one per segment.
         # px.bar with melted data renders separate rows per year — go.Bar fixes this.
-        st.markdown("##### Market Structure (Dom vs Intl)")
+        st.markdown("##### Domestic vs International Passengers")
 
         split_df = filtered_df.groupby('Year')[['Domestic Passengers', 'International Passengers']].sum().reset_index()
 
@@ -179,7 +184,8 @@ if not filtered_df.empty:
             marker_color='#BFCAD5',
             text=split_df['Dom_pct'].astype(str) + '%',
             textposition='inside',
-            insidetextanchor='middle'
+            insidetextanchor='middle',
+            textangle=0                # Force horizontal text — never rotate
         ))
 
         # Trace 2: International (large, right segment — navy blue)
@@ -202,7 +208,8 @@ if not filtered_df.empty:
             yaxis=dict(title=None, type='category'),
             margin=dict(l=0, r=0, t=10, b=40),
             bargap=0.5,
-            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0, title=None)
+            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0, title=None),
+            uniformtext=dict(minsize=8, mode='hide')  # Hide labels that can't fit horizontally
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -219,21 +226,26 @@ if not filtered_df.empty:
                 
             growth_df = pd.DataFrame(growth_data).sort_values('Growth (%)', ascending=True)
             
-            fig3 = px.bar(
-                growth_df, 
-                x='Growth (%)', 
-                y='Airport', 
+            # Build the chart manually with go.Bar to avoid px.bar's grouped-mode alignment bug
+            fig3 = go.Figure()
+            fig3.add_trace(go.Bar(
+                x=growth_df['Growth (%)'],
+                y=growth_df['Airport'],
                 orientation='h',
-                text_auto='.1f', # Shows the percentage on the bar
-                color_discrete_sequence=['#2ca02c'] # Green for growth
-            )
+                marker_color=[airport_colors.get(a, '#1A4F8A') for a in growth_df['Airport']],
+                text=[f"{val:.1f}%" for val in growth_df['Growth (%)']],
+                textposition='inside',
+                insidetextanchor='end',
+                showlegend=False
+            ))
             
             fig3.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                xaxis_showgrid=False,
-                yaxis_showgrid=False,
-                margin=dict(l=0, r=0, t=10, b=0)
+                xaxis=dict(showgrid=False, visible=False),
+                yaxis=dict(showgrid=False, title=None),
+                margin=dict(l=0, r=0, t=10, b=0),
+                bargap=0.4
             )
             st.plotly_chart(fig3, use_container_width=True)
         else:
