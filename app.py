@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 # 1. Page Configuration (Enforcing the 16:9 minimalist layout)
 st.set_page_config(page_title="UK Aviation Recovery", layout="wide", initial_sidebar_state="expanded")
 
-# --- CUSTOM CSS FOR MINIMALISM ---
+# --- CUSTOM CSS ---
 # This hides standard Streamlit borders and makes the KPI cards look like your design
 st.markdown("""
     <style>
@@ -26,7 +26,7 @@ st.markdown("""
 def load_data():
     """Loads data from SQLite and caches it in RAM so filters apply instantly."""
     # Update this path if your DB is saved elsewhere
-    db_path = r"C:\Users\Kamiye\Desktop\aviation-dashboard\aviation_dashboard.db"
+    db_path = "aviation_dashboard.db"
     conn = sqlite3.connect(db_path)
     df = pd.read_sql("SELECT * FROM passenger_trends", conn)
     conn.close()
@@ -71,7 +71,7 @@ selected_airports = st.sidebar.multiselect(
     "Compare Airports (Max 3)",
     options=available_airports,
     default=["HEATHROW", "GATWICK"],
-    max_selections=3  # Streamlit automatically prevents selecting a 4th!
+    max_selections=3  # Streamlit automatically prevents selecting a fourth option
 )
 
 # 4. Apply Filters to Data
@@ -160,7 +160,7 @@ if not filtered_df.empty:
     st.markdown("<br>", unsafe_allow_html=True) # Whitespace spacer
     
     # --- THE MICRO VIEW (Bottom Row) ---
-    col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2, gap="large")
     
     with col1:
         # CHART 2: Market Structure — Horizontal 100% Stacked Bar
@@ -187,7 +187,7 @@ if not filtered_df.empty:
             name='Domestic',
             orientation='h',
             marker_color='#BFCAD5',
-            text=split_df['Dom_pct'].astype(str) + '%',
+            text=["<b>" + str(val) + "%</b>" for val in split_df['Dom_pct']],
             textposition='inside',
             insidetextanchor='middle',
             textangle=0                # Force horizontal text — never rotate
@@ -200,11 +200,12 @@ if not filtered_df.empty:
             name='International',
             orientation='h',
             marker_color='#1A4F8A',
-            text=split_df['Intl_pct'].astype(str) + '%',
+            text=["<b>" + str(val) + "%</b>" for val in split_df['Intl_pct']],
             textposition='inside',
             insidetextanchor='middle'
         ))
 
+        fig2.update_traces(marker_cornerradius=10, textfont=dict(size=15)) # Larger font and pill edges
         fig2.update_layout(
             barmode='stack',
             plot_bgcolor="rgba(0,0,0,0)",
@@ -220,7 +221,7 @@ if not filtered_df.empty:
 
     with col2:
         # CHART 3: Recovery Leaderboard (Horizontal Bar)
-        st.markdown(f"##### Growth Leaderboard ({min_year} to {max_year})")
+        st.markdown(f"##### Growth Leaderboard (%) ({min_year} to {max_year})")
         if min_year != max_year:
             growth_data = []
             for airport in selected_airports:
@@ -238,8 +239,10 @@ if not filtered_df.empty:
                 y=growth_df['Airport'],
                 orientation='h',
                 marker_color=[airport_colors.get(a, '#1A4F8A') for a in growth_df['Airport']],
-                text=[f"{val:.1f}%" for val in growth_df['Growth (%)']],
+                marker_cornerradius=10, # Add beautiful modern rounded corners to the bars
+                text=[f"<b>{val:.1f}%</b>" for val in growth_df['Growth (%)']],
                 textposition='inside',
+                textfont=dict(size=15),
                 insidetextanchor='end',
                 showlegend=False
             ))
