@@ -109,7 +109,13 @@ if not filtered_df.empty:
     with kpi2:
         st.metric(label=trend_label, value=f"{yoy_growth:+.1f}%" if min_year != max_year else "-")
     with kpi3:
-        st.metric(label="Volatility Score (CV)", value=f"{cv_score:.3f}", delta="Stable" if cv_score < 0.8 else "Volatile", delta_color="inverse")
+        st.metric(
+            label="Volatility Score (CV)", 
+            value=f"{cv_score:.3f}", 
+            delta="Stable" if cv_score < 0.8 else "Volatile", 
+            delta_color="inverse",
+            help="Coefficient of Variation (Standard Deviation ÷ Mean). Scores under 0.8 mark stable, predictable traffic. Scores over 0.8 indicate highly volatile/seasonal swings."
+        )
 
 else:
     st.warning("Please select at least one Year and one Airport from the sidebar to view data.")
@@ -144,9 +150,8 @@ if not filtered_df.empty:
     fig1.update_layout(
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        xaxis_showgrid=False,
-        yaxis_showgrid=True,
-        yaxis_gridcolor='#E6E9EF',
+        xaxis=dict(showgrid=False, title=None),
+        yaxis=dict(showgrid=True, gridcolor='#E6E9EF', title=None),
         margin=dict(l=0, r=0, t=40, b=0),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
@@ -208,14 +213,14 @@ if not filtered_df.empty:
             yaxis=dict(title=None, type='category'),
             margin=dict(l=0, r=0, t=10, b=40),
             bargap=0.5,
-            legend=dict(orientation="h", yanchor="top", y=-0.1, xanchor="left", x=0, title=None),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
             uniformtext=dict(minsize=8, mode='hide')  # Hide labels that can't fit horizontally
         )
         st.plotly_chart(fig2, use_container_width=True)
 
     with col2:
         # CHART 3: Recovery Leaderboard (Horizontal Bar)
-        st.markdown("##### Growth Leaderboard")
+        st.markdown(f"##### Growth Leaderboard ({min_year} to {max_year})")
         if min_year != max_year:
             growth_data = []
             for airport in selected_airports:
