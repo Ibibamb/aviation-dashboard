@@ -105,9 +105,9 @@ if not filtered_df.empty:
 
     # Render the Cards
     with kpi1:
-        st.metric(label="Total Passengers", value=f"{total_pax / 1000000:.1f}M")
+        st.metric(label="Total Passengers", value=f"{total_pax / 1000000:.1f}M", delta="—", delta_color="off")
     with kpi2:
-        st.metric(label=trend_label, value=f"{yoy_growth:+.1f}%" if min_year != max_year else "-")
+        st.metric(label=trend_label, value=f"{yoy_growth:+.1f}%" if min_year != max_year else "-", delta="—", delta_color="off")
     with kpi3:
         st.metric(
             label="Volatility Score (CV)", 
