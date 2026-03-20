@@ -6,12 +6,16 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # 1. Page Configuration (Enforcing the 16:9 minimalist layout)
-st.set_page_config(page_title="UK Aviation Recovery", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="UK Aviation Recovery", layout="wide", initial_sidebar_state="collapsed")
 
 # --- CUSTOM CSS ---
 # This hides standard Streamlit borders and makes the KPI cards look like your design
 st.markdown("""
     <style>
+    /* Reduce native Streamlit top padding to reclaim whitespace */
+    .block-container {
+        padding-top: 2rem !important;
+    }
     div[data-testid="stMetric"] {
         border: 1px solid #E6E9EF;
         padding: 5% 5% 5% 10%;
@@ -47,34 +51,39 @@ def load_data():
 
 df = load_data()
 
-# 3. The Control Center (Sidebar)
-st.sidebar.title("UK Aviation Recovery")
-st.sidebar.markdown("*(Analytics Dashboard)*")
-st.sidebar.markdown("---")
+# 3. Dashboard Header
+st.title("UK Aviation Recovery")
+st.markdown("*(Analytics Dashboard)*")
+st.markdown("---")
 
-# Year Filter
+# 4. The Control Center (Top Navbar)
 available_years = sorted(df['Year'].unique())
-selected_years = st.sidebar.multiselect(
-    "Timeline (Select Years)", 
-    options=available_years, 
-    default=available_years
-)
-
-# Airport Filter (Enforcing the Project Constraint!)
 available_airports = sorted(df['Airport'].unique())
 
 # Define a consistent corporate color palette for all airports across charts
 # 5 airports in DB → 5 distinct, high-contrast colors
 THEME_COLORS = ['#1A4F8A', '#00A896', '#82A6CB', '#E8724A', '#6C5CE7']  # Navy, Teal, Sky, Coral, Violet
 airport_colors = {airport: THEME_COLORS[i % len(THEME_COLORS)] for i, airport in enumerate(available_airports)}
-selected_airports = st.sidebar.multiselect(
-    "Compare Airports (Max 3)",
-    options=available_airports,
-    default=["HEATHROW", "GATWICK"],
-    max_selections=3  # Streamlit automatically prevents selecting a fourth option
-)
 
-# 4. Apply Filters to Data
+# Side-by-side Layout for Filters
+filter_col1, filter_col2 = st.columns(2, gap="large")
+
+with filter_col1:
+    selected_years = st.multiselect(
+        "Timeline (Select Years)", 
+        options=available_years, 
+        default=available_years
+    )
+
+with filter_col2:
+    selected_airports = st.multiselect(
+        "Compare Airports (Max 3)",
+        options=available_airports,
+        default=["HEATHROW", "GATWICK"],
+        max_selections=3  # Streamlit automatically prevents selecting a fourth option
+    )
+
+# 5. Apply Filters to Data
 filtered_df = df[(df['Year'].isin(selected_years)) & (df['Airport'].isin(selected_airports))]
 
 # 5. The KPI Ribbon (Top Row)
