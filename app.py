@@ -4,6 +4,7 @@ import sqlite3
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+import os
 
 # 1. Page Configuration (Enforcing the 16:9 minimalist layout)
 st.set_page_config(page_title="UK Aviation Recovery", layout="wide", initial_sidebar_state="collapsed")
@@ -31,6 +32,19 @@ def load_data():
     """Loads data from SQLite and caches it in RAM so filters apply instantly."""
     # Update this path if your DB is saved elsewhere
     db_path = "aviation_dashboard.db"
+    
+    # Auto-seed the database if it doesn't exist (e.g. on Streamlit Cloud deployment)
+    if not os.path.exists(db_path):
+        csv_path = "aviation_dashboard.csv"
+        if os.path.exists(csv_path):
+            seed_df = pd.read_csv(csv_path)
+            conn = sqlite3.connect(db_path)
+            seed_df.to_sql("passenger_trends", conn, if_exists="replace", index=False)
+            conn.close()
+        else:
+            st.error(f"Missing data source! Both `{db_path}` and `{csv_path}` are missing.")
+            st.stop()
+
     conn = sqlite3.connect(db_path)
     df = pd.read_sql("SELECT * FROM passenger_trends", conn)
     conn.close()
