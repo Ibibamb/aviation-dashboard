@@ -51,16 +51,20 @@ def load_data():
     
     # Ensure correct data types
     df['Year'] = df['Year'].astype(int)
-    # Handle month names (e.g. "January") OR numeric months stored as strings
-    if df['Month'].dtype == object:
+    # Handle month names (e.g. "January") OR numeric months stored as strings.
+    # NOTE: Pandas 3.x changed string column dtype from `object` to `string[pyarrow]`,
+    # so we can no longer rely on `dtype == object` to detect string columns.
+    # Instead, we check if the column actually contains non-numeric values.
+    month_sample = df['Month'].dropna().iloc[0] if not df['Month'].dropna().empty else None
+    if month_sample is not None and not str(month_sample).isdigit():
         try:
             # Try parsing full month names like "January", "February" etc.
-            df['Month'] = pd.to_datetime(df['Month'], format='%B').dt.month
+            df['Month'] = pd.to_datetime(df['Month'].astype(str), format='%B').dt.month
         except ValueError:
             # Fallback: try abbreviated names like "Jan", "Feb" etc.
-            df['Month'] = pd.to_datetime(df['Month'], format='%b').dt.month
+            df['Month'] = pd.to_datetime(df['Month'].astype(str), format='%b').dt.month
     else:
-        df['Month'] = df['Month'].astype(int)
+        df['Month'] = pd.to_numeric(df['Month'], errors='coerce').astype('Int64')
     return df
 
 df = load_data()
@@ -178,7 +182,7 @@ if not filtered_df.empty:
         margin=dict(l=0, r=0, t=40, b=0),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
     )
-    st.plotly_chart(fig1, use_container_width=True)
+    st.plotly_chart(fig1, width='stretch')
     
     st.markdown("<br>", unsafe_allow_html=True) # Whitespace spacer
     
@@ -240,7 +244,7 @@ if not filtered_df.empty:
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, title=None),
             uniformtext=dict(minsize=8, mode='hide')  # Hide labels that can't fit horizontally
         )
-        st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, width='stretch')
 
     with col2:
         # CHART 3: Recovery Leaderboard (Horizontal Bar)
@@ -278,6 +282,6 @@ if not filtered_df.empty:
                 margin=dict(l=0, r=0, t=10, b=0),
                 bargap=0.4
             )
-            st.plotly_chart(fig3, use_container_width=True)
+            st.plotly_chart(fig3, width='stretch')
         else:
             st.info(f"Select multiple years in the sidebar to calculate growth leaderboard.")
